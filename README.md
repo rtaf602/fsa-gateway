@@ -15,14 +15,19 @@
 ### 1. ตั้งให้เครื่อง Gateway ได้ IP เดิมทุกครั้ง
 ใน router ของที่ทำงาน ให้จอง IP (DHCP reservation) ให้เครื่อง Gateway เช่น `192.168.1.10`
 
+ถ้า router ไม่มีเมนูนี้ ให้ตั้ง IP ตายตัวที่เครื่อง Gateway เองแทน:
+Settings → Network → IP assignment → Manual
+เลือก IP ที่อยู่นอกช่วงที่ router แจกอัตโนมัติ ส่วน Subnet mask, Gateway และ DNS ให้ใช้ค่าเดียวกับที่ `ipconfig /all` แสดงอยู่ตอนนี้
+
 ### 2. ตั้งชื่อให้ iPad เรียกหาเครื่อง Gateway
 คู่มือ NAVBLUE บังคับให้ใช้ชื่อ ห้ามใช้ IP เลือกทางใดทางหนึ่ง:
 
 - **ก. router หรือ DNS ของที่ทำงานเพิ่มชื่อได้:** เพิ่ม `efb-gateway.rtaf602.com` → `192.168.1.10`
   (เมนูมักชื่อ Local DNS, Static DNS หรือ Host name)
 - **ข. เพิ่มชื่อไม่ได้:** ใช้บริการฟรี sslip.io ที่แปลงชื่อเป็น IP ให้อัตโนมัติ เช่น IP `192.168.1.10`
-  ใช้ชื่อ `efb-gateway-192-168-1-10.sslip.io` ได้ทันที
-  (ต้องให้ iPad เข้าอินเทอร์เน็ตได้ และถ้าเปลี่ยน IP ต้องทำใบรับรองใหม่)
+  ใช้ชื่อ `efb-gateway.192-168-1-10.sslip.io` ได้ทันที
+  ใช้ได้กับ router แทบทุกตัว แต่มีเงื่อนไข: iPad ต้องเข้าอินเทอร์เน็ตได้, ถ้าเปลี่ยน IP ต้องทำใบรับรองใหม่
+  และถ้า router เปิด DNS rebinding protection อยู่ (เช่น pfSense, OpenWrt) ชื่อนี้จะใช้ไม่ได้
 
 ### 3. รันสคริปต์บนเครื่อง Gateway
 เปิด PowerShell แบบ **Run as administrator**:
