@@ -45,8 +45,14 @@ function Invoke-Keytool {
         if ($LASTEXITCODE -ne 0) { throw "keytool failed (exit $LASTEXITCODE)" }
         return
     }
-    $out = & $kt @all 2>&1 | ForEach-Object { "$_" }
-    $code = $LASTEXITCODE
+    # keytool writes normal messages to stderr; Windows PowerShell 5.1 turns those into
+    # terminating errors when ErrorActionPreference is Stop, so relax it for this call.
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $out = & $kt @all 2>&1 | ForEach-Object { "$_" }
+        $code = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $prevEap }
     if ($code -ne 0) {
         $safe = (($out | Where-Object { $_ -notmatch '^Picked up' }) -join "`n")
         throw "keytool failed (exit $code):`n$safe"

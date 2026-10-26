@@ -43,6 +43,12 @@ if ($CertFile -match '\.p7[bc]$' -and -not $ChainFile) {
 
 $pw = Read-KeystorePassword
 
+# Already imported (e.g. re-run after an interruption)? Then skip straight to verification.
+$current = Get-KeystoreLeafCert -Keystore $ks -Password $pw -WorkDir $dir
+$already = $current.Issuer -ne $current.Subject
+if ($already) {
+    Write-Ok "Certificate already imported (issuer: $($current.Issuer)) - skipping import"
+} else {
 Write-Step 'Importing certificate reply into alias mach9'
 $importArgs = @('-importcert', '-alias', $script:Alias, '-trustcacerts', '-file', $reply,
     '-keystore', $ks, '-storetype', 'PKCS12', '-storepass', $pw)
@@ -51,6 +57,7 @@ if ($NoPrompt) {
 } else {
     Write-Host '    (if keytool asks "Trust this certificate?", check the issuer and answer yes)' -ForegroundColor DarkGray
     Invoke-Keytool -Interactive -Arguments $importArgs | Out-Null
+}
 }
 
 Write-Step 'Verifying keystore'
