@@ -23,4 +23,17 @@ $Config = @{
 
     # Warn when the certificate expires in less than N days (04-Test-Gateway.ps1)
     WarnDays           = 30
+
+    # ---- Private CA (option A: VPN + internal CA) -------------------------
+    # Folder holding the root CA keystore. Put it on a removable/encrypted drive,
+    # NOT on the Gateway server and NOT in this repository.
+    CaRoot             = 'E:\rtaf602-ca'
+    CaName             = 'RTAF602 EFB Root CA'
+    CaValidityYears    = 10
+    # Gateway certificate lifetime. iOS rejects TLS server certificates > 825 days.
+    CertValidityDays   = 800
+
+    # ---- Firewall (05-Set-Firewall.ps1) -----------------------------------
+    # Networks allowed to reach the Gateway HTTPS port: VPN client pool + office LAN.
+    AllowedSubnets     = @('10.8.0.0/24', '192.168.1.0/24')
 }

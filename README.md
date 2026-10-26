@@ -8,6 +8,16 @@
 > `config.ps1`, `standalone.xml` หรือรหัสผ่านใดๆ เด็ดขาด `.gitignore` กันไฟล์เหล่านี้ไว้แล้ว
 > และสคริปต์เก็บไฟล์ทั้งหมดไว้ที่ `WorkRoot` (ค่าเริ่มต้น `C:\Airbus\ssl-work`) ซึ่งอยู่นอก repo
 
+## เลือกแนวทาง
+
+| แนวทาง | ใช้เมื่อ | ต่ออายุ | ค่าใช้จ่าย |
+|---|---|---|---|
+| **A. VPN + Private CA (แนวทางที่ใช้)** – [คู่มือเต็ม](docs/option-a-vpn.md) | iPad อยู่ภายใต้ MDM, เข้า Gateway ผ่าน VPN | ประมาณทุก 2 ปี | ฟรี |
+| B. ใบรับรองสาธารณะ (DV SSL / Let's Encrypt) – ขั้นตอนด้านล่าง | Gateway เปิดออกอินเทอร์เน็ต หรือไม่มี MDM | ≤ 200 วัน (ลดเหลือ 100 วันตั้งแต่ มี.ค. 2027) | ฟรี – ประมาณ 15 USD/ปี |
+
+สคริปต์ 01–04 และ 99 ใช้ร่วมกันทั้งสองแนวทาง ต่างกันแค่ว่าให้ใครเซ็น CSR:
+แนวทาง A ใช้ `scripts/ca/11-Sign-GatewayCsr.ps1` ส่วนแนวทาง B ส่ง CSR ให้ CA สาธารณะ
+
 ## ข้อกำหนดของ Gateway ที่สคริปต์รองรับให้แล้ว
 
 | ข้อกำหนด (Installation Guide) | สคริปต์ทำให้ |
@@ -37,7 +47,9 @@ notepad config.ps1          # ตรวจ WildflyPath, WildflyServiceName, Http
 Set-ExecutionPolicy -Scope Process Bypass
 ```
 
-## ขั้นตอน
+## ขั้นตอน (แนวทาง B – ใบรับรองสาธารณะ)
+
+แนวทาง A ให้ทำตาม [docs/option-a-vpn.md](docs/option-a-vpn.md)
 
 ### 1) สร้าง key และ CSR
 ```powershell
@@ -122,8 +134,13 @@ scripts/Common.ps1           ฟังก์ชันที่ใช้ร่ว
 scripts/01-New-Csr.ps1       สร้าง key (alias mach9, PKCS12) + CSR
 scripts/02-Import-Certificate.ps1  นำใบรับรองจาก CA เข้า keystore และตรวจสอบ
 scripts/03-Install-Keystore.ps1    ติดตั้งลง Wildfly + แก้ standalone.xml + restart
-scripts/04-Test-Gateway.ps1  ทดสอบ TLS แบบเดียวกับฝั่ง client + เช็กวันหมดอายุ
+scripts/04-Test-Gateway.ps1  ทดสอบ TLS แบบเดียวกับฝั่ง client + เช็กวันหมดอายุและข้อกำหนด iOS
+                             (-CaFile สำหรับ Private CA)
+scripts/05-Set-Firewall.ps1  เปิดพอร์ต HTTPS เฉพาะ VPN/LAN และหา rule ที่เปิดพอร์ตให้ทุก IP
 scripts/99-Rollback.ps1      คืน standalone.xml จาก backup
+scripts/ca/10-New-RootCA.ps1      สร้าง Root CA ของหน่วย (ครั้งเดียว บนเครื่องแอดมิน)
+scripts/ca/11-Sign-GatewayCsr.ps1 เซ็นใบรับรอง Gateway (≤ 825 วัน ตามข้อกำหนด iOS)
+docs/option-a-vpn.md         คู่มือแนวทาง A: ย้ายเครื่อง, DNS, CA, MDM, VPN, ทดสอบ
 ```
 
 อ้างอิง: Flysmart+ for iPad Gateway V5.6.1 Installation Guide RevA (10.3, 11.4) และ Release Note RevA

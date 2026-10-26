@@ -10,14 +10,20 @@
   name validation). Useful on the server itself: -Server 127.0.0.1
 .EXAMPLE
   .\scripts\04-Test-Gateway.ps1
+.PARAMETER CaFile
+  Root CA certificate (.cer/.pem) to trust for this test - use it with the private CA
+  (option A) when the root is not installed in the Windows certificate store.
 .EXAMPLE
   .\scripts\04-Test-Gateway.ps1 -Server 127.0.0.1
+.EXAMPLE
+  .\scripts\04-Test-Gateway.ps1 -Server 127.0.0.1 -CaFile C:\Airbus\rtaf602-efb-root-ca.pem
 #>
 [CmdletBinding()]
 param(
     [string]$Server,
     [int]$Port,
-    [int]$WarnDays
+    [int]$WarnDays,
+    [string]$CaFile
 )
 
 . (Join-Path $PSScriptRoot 'Common.ps1')
@@ -63,8 +69,44 @@ Write-Host "    Expires   : $($remote.NotAfter)  ($days days left)"
 Write-Host '    Chain     :'
 foreach ($sub in $script:chainSubjects) { Write-Host "      - $sub" }
 
+$errors = $script:policyErrors
+if ($CaFile -and ($errors -band [System.Net.Security.SslPolicyErrors]::RemoteCertificateChainErrors)) {
+    # Validate the chain against the given private root instead of the OS store
+    $root = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList (Resolve-Path $CaFile).Path
+    $ch = New-Object System.Security.Cryptography.X509Certificates.X509Chain
+    $ch.ChainPolicy.RevocationMode = 'NoCheck'
+    $ch.ChainPolicy.VerificationFlags = 'AllowUnknownCertificateAuthority'
+    [void]$ch.ChainPolicy.ExtraStore.Add($root)
+    $built = $ch.Build($remote)
+    $top = $ch.ChainElements[$ch.ChainElements.Count - 1].Certificate
+    $other = @($ch.ChainStatus | Where-Object { $_.Status -ne 'UntrustedRoot' -and $_.Status -ne 'NoError' })
+    if ($built -and $top.Thumbprint -eq $root.Thumbprint -and $other.Count -eq 0) {
+        $errors = $errors -bxor [System.Net.Security.SslPolicyErrors]::RemoteCertificateChainErrors
+        Write-Ok "Chain verified against private root $($root.Subject)"
+    } else {
+        $script:chainStatus = @($ch.ChainStatus | ForEach-Object { "$($_.Status): $($_.StatusInformation.Trim())" }) + "top of chain: $($top.Subject)"
+    }
+}
+
+# iOS requirements for TLS server certificates
+$lifetime = ($remote.NotAfter - $remote.NotBefore).TotalDays
+$eku = $remote.Extensions | Where-Object { $_.Oid.Value -eq '2.5.29.37' }
+$iosIssues = @()
+if ($lifetime -gt 825) { $iosIssues += "lifetime $([int]$lifetime) days > 825 (iOS will reject it)" }
+if (-not $eku -or $eku.Format($false) -notmatch 'Server Authentication|1\.3\.6\.1\.5\.5\.7\.3\.1') { $iosIssues += 'EKU serverAuth missing (required by iOS)' }
+$bits = 0
+try {
+    $rsa = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($remote)
+    if ($rsa) { $bits = $rsa.ExportParameters($false).Modulus.Length * 8 }
+} catch { }
+if ($bits -gt 0 -and $bits -lt 2048) { $iosIssues += "RSA key $bits bits < 2048" }
+
 $code = 0
-if ($script:policyErrors -ne [System.Net.Security.SslPolicyErrors]::None) {
+if ($iosIssues) {
+    $iosIssues | ForEach-Object { Write-Host "[FAIL] iOS: $_" -ForegroundColor Red }
+    $code = 2
+} elseif ($errors -ne [System.Net.Security.SslPolicyErrors]::None) {
+    $script:policyErrors = $errors
     Write-Host "[FAIL] Validation errors: $($script:policyErrors)" -ForegroundColor Red
     foreach ($st in $script:chainStatus) { Write-Host "       $st" -ForegroundColor Red }
     Write-Host '       RemoteCertificateNameMismatch -> certificate does not cover the domain'
