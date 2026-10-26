@@ -77,6 +77,7 @@ Account → **SSL Certificates** → **Activate**
   (Java 8 รุ่นเก่าอาจยังไม่มี root ของ SSL.com แต่ iPad และ Windows เชื่อถืออยู่แล้ว)
 - `03` จะสำรอง `standalone.xml` แก้ค่าที่จำเป็น แล้ว restart Wildfly
 - `04` ต้องขึ้น `[OK] Certificate is valid and trusted.`
+- หลัง restart ตรวจ `C:\Airbus\Wildfly\standalone\deployments` ต้องมีทั้ง `fsa-gateway.war.deployed` และ `fsa-gateway-user.war.deployed`
 
 ### 8. เปิด Firewall ให้ iPad เข้าถึงได้
 ถ้าเปิดลิงก์ได้จากเครื่อง Gateway แต่เปิดจาก iPad ไม่ได้ แปลว่า Windows Firewall บล็อกอยู่
@@ -115,6 +116,8 @@ New-NetFirewallRule -DisplayName "FSA Gateway HTTPS 8443" -Direction Inbound -Pr
 | `RemoteCertificateNameMismatch` | iPad หรือผู้ทดสอบเข้าด้วย IP แทนชื่อ `rtaf602fsagateway.com` |
 | `nslookup` ไม่ได้ IP | ตรวจ A record ใน Namecheap หรือ router บล็อก DNS ที่ชี้ไป IP ภายใน (DNS rebinding protection) |
 | เปิดได้จากเครื่อง Gateway แต่ iPad เปิดไม่ได้ | ทำขั้นที่ 8 (Firewall) และตรวจว่า iPad ต่อ Wi-Fi วงเดียวกัน |
+| แอป FS+ Manager ขึ้น "Could not connect to server" แต่ Safari เปิดหน้า Gateway ได้ | เปิด `https://<ชื่อ>:8443/fsa-gateway-user` ถ้าขึ้น 404 แปลว่า `fsa-gateway-user` ไม่ได้ทำงาน ให้รัน `New-Item C:\Airbus\Wildfly\standalone\deployments\fsa-gateway-user.war.dodeploy -ItemType File` แล้วรอจนมีไฟล์ `fsa-gateway-user.war.deployed` |
+| Wildfly ปิดตัวนานเกิน 5 นาทีตอน restart | เปิด PowerShell (Admin) อีกหน้าต่าง แล้วบังคับปิด process `java.exe`/`wildfly-service.exe` ของ Wildfly จากนั้น `Start-Service Wildfly` |
 | Wildfly ไม่ start | `.\scripts\99-Rollback.ps1` แล้วดู `[Wildfly]\standalone\log\server.log` |
 
 ---
