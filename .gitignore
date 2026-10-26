@@ -1,0 +1,20 @@
+# Local configuration
+config.ps1
+
+# Secrets and certificate material - NEVER commit (this repo is public)
+*.jks
+*.p12
+*.pfx
+*.keystore
+*.key
+*.pem
+*.crt
+*.cer
+*.ca-bundle
+*.p7b
+*.csr
+state.json
+ssl-work/
+
+# Backups of Wildfly configuration (contain clear-text passwords)
+standalone.xml*
