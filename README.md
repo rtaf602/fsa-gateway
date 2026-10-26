@@ -1,146 +1,96 @@
-# fsa-gateway – SSL certificate สำหรับ Flysmart+ for iPad Gateway
+# fsa-gateway – SSL certificate สำหรับ Flysmart+ for iPad Gateway (ใช้ในวง LAN)
 
-สคริปต์ PowerShell สำหรับขอ ติดตั้ง ทดสอบ และต่ออายุใบรับรอง SSL แบบ DV ของ
-**`efb-gateway.rtaf602.com`** บน Flysmart+ for iPad Gateway V5.6.1 (Wildfly)
-ตามข้อกำหนดใน Installation Guide บทที่ 10.3 และ 11.4
+ทำใบรับรอง SSL ให้ Flysmart+ Gateway V5.6.1 ด้วย **คำสั่งเดียว** ไม่มีค่าใช้จ่าย
+ใบรับรองมีอายุประมาณ 2 ปี
 
-> ⚠️ **Repo นี้เป็น public** ห้าม commit keystore (`.jks`/`.pfx`/`.p12`), private key,
-> `config.ps1`, `standalone.xml` หรือรหัสผ่านใดๆ เด็ดขาด `.gitignore` กันไฟล์เหล่านี้ไว้แล้ว
-> และสคริปต์เก็บไฟล์ทั้งหมดไว้ที่ `WorkRoot` (ค่าเริ่มต้น `C:\Airbus\ssl-work`) ซึ่งอยู่นอก repo
+เงื่อนไขการใช้งาน: iPad sync ได้เมื่อ **เครื่อง Gateway เปิดอยู่** และ **iPad ต่อ Wi-Fi วงเดียวกับเครื่อง Gateway**
 
-## เลือกแนวทาง
+> ⚠️ repo นี้เป็น public ห้าม commit ไฟล์ `.jks` `.p12` `.cer` `config.ps1` หรือรหัสผ่าน
+> สคริปต์เก็บไฟล์ทั้งหมดไว้ที่ `C:\Airbus\ssl-work` ซึ่งอยู่นอก repo
 
-| แนวทาง | ใช้เมื่อ | ต่ออายุ | ค่าใช้จ่าย |
-|---|---|---|---|
-| **A. VPN + Private CA (แนวทางที่ใช้)** – [คู่มือเต็ม](docs/option-a-vpn.md) | iPad อยู่ภายใต้ MDM, เข้า Gateway ผ่าน VPN | ประมาณทุก 2 ปี | ฟรี |
-| B. ใบรับรองสาธารณะ (DV SSL / Let's Encrypt) – ขั้นตอนด้านล่าง | Gateway เปิดออกอินเทอร์เน็ต หรือไม่มี MDM | ≤ 200 วัน (ลดเหลือ 100 วันตั้งแต่ มี.ค. 2027) | ฟรี – ประมาณ 15 USD/ปี |
+---
 
-สคริปต์ 01–04 และ 99 ใช้ร่วมกันทั้งสองแนวทาง ต่างกันแค่ว่าให้ใครเซ็น CSR:
-แนวทาง A ใช้ `scripts/ca/11-Sign-GatewayCsr.ps1` ส่วนแนวทาง B ส่ง CSR ให้ CA สาธารณะ
+## ทำครั้งแรก (ประมาณ 30 นาที)
 
-## ข้อกำหนดของ Gateway ที่สคริปต์รองรับให้แล้ว
+### 1. ตั้งให้เครื่อง Gateway ได้ IP เดิมทุกครั้ง
+ใน router ของที่ทำงาน ให้จอง IP (DHCP reservation) ให้เครื่อง Gateway เช่น `192.168.1.10`
 
-| ข้อกำหนด (Installation Guide) | สคริปต์ทำให้ |
-|---|---|
-| ใบรับรองจาก CA ที่น่าเชื่อถือ ห้ามใช้ self-signed เมื่อเปิดออกอินเทอร์เน็ต (10.3) | ตรวจว่า issuer ≠ subject และ chain ครบ |
-| ต้องใช้ชื่อโดเมน ห้ามใช้ IP (11.4) | ปฏิเสธถ้า `Domain` เป็น IP และตรวจ SAN |
-| keystore ต้องมี alias `mach9` และ storetype `PKCS12` (11.4.1) | สร้างแบบนี้ตั้งแต่ต้น ไม่ต้องแปลงไฟล์ |
-| แก้ `gatewayKeyStore` / `gatewayKeyManager` ใน `standalone.xml` แล้ว restart (11.4.3) | แก้เฉพาะ 3 ค่า สำรองไฟล์ก่อน แล้ว restart ให้ |
-| รหัสผ่านห้ามมีอักขระพิเศษของ XML (Release Note: known issue) | ไม่รับ `< > " = / # : & ' \` และช่องว่าง |
+### 2. ตั้งชื่อให้ iPad เรียกหาเครื่อง Gateway
+คู่มือ NAVBLUE บังคับให้ใช้ชื่อ ห้ามใช้ IP เลือกทางใดทางหนึ่ง:
 
-## สิ่งที่ต้องมี
+- **ก. router หรือ DNS ของที่ทำงานเพิ่มชื่อได้:** เพิ่ม `efb-gateway.rtaf602.com` → `192.168.1.10`
+  (เมนูมักชื่อ Local DNS, Static DNS หรือ Host name)
+- **ข. เพิ่มชื่อไม่ได้:** ใช้บริการฟรี sslip.io ที่แปลงชื่อเป็น IP ให้อัตโนมัติ เช่น IP `192.168.1.10`
+  ใช้ชื่อ `efb-gateway-192-168-1-10.sslip.io` ได้ทันที
+  (ต้องให้ iPad เข้าอินเทอร์เน็ตได้ และถ้าเปลี่ยน IP ต้องทำใบรับรองใหม่)
 
-- Windows Server ที่ติดตั้ง Gateway แล้ว และตั้ง `JAVA_HOME` เป็น JDK ตัวเดียวกับที่ Wildfly ใช้ (คู่มือ 5.1.2)
-  สคริปต์เรียก `keytool` จาก JDK ตัวนั้น เพื่อให้รูปแบบการเข้ารหัส PKCS12 เข้ากันได้
-  (คู่มือ 11.4.1: ถ้าเป็น PBES2 ต้องใช้ JDK 1.8.0_311 ขึ้นไป)
-- โดเมน `rtaf602.com` ที่หน่วยงานเป็นเจ้าของ และสิทธิ์แก้ DNS
-- A record `efb-gateway.rtaf602.com` → IP ของ Gateway (ถ้าใช้เฉพาะภายใน ใส่ใน DNS ภายในได้)
-- PowerShell 5.1 ขึ้นไป (มีมากับ Windows Server อยู่แล้ว)
-
-## เริ่มใช้งาน (ครั้งแรก)
-
+### 3. รันสคริปต์บนเครื่อง Gateway
+เปิด PowerShell แบบ **Run as administrator**:
 ```powershell
-git clone https://github.com/rtaf602/fsa-gateway.git C:\Airbus\fsa-gateway
-cd C:\Airbus\fsa-gateway
+cd C:\Airbus
+git clone https://github.com/rtaf602/fsa-gateway.git
+cd fsa-gateway
 copy config.example.ps1 config.ps1
-notepad config.ps1          # ตรวจ WildflyPath, WildflyServiceName, HttpsPort
+notepad config.ps1
+```
+ใน `config.ps1` ตรวจ 4 บรรทัดนี้ให้ตรงกับเครื่อง:
+`Domain` (ชื่อจากข้อ 2), `WildflyPath`, `WildflyServiceName`, `HttpsPort`
+
+จากนั้นรัน:
+```powershell
 Set-ExecutionPolicy -Scope Process Bypass
+.\Setup-LanSsl.ps1
 ```
+- สคริปต์จะให้ตั้งรหัสผ่าน **จดเก็บไว้ ต้องใช้ตอนต่ออายุ** และรหัสผ่านห้ามมี `< > " = / # : & ' \` หรือช่องว่าง
+- เมื่อเสร็จ ต้องขึ้น `Done.` และ `[OK] Certificate is valid and trusted.`
+- **สำรองโฟลเดอร์ `C:\Airbus\ssl-work\ca`** ไว้ใน USB เก็บในที่ปลอดภัย
+  ถ้าโฟลเดอร์นี้หาย ต้องติดตั้งไฟล์ใหม่ลง iPad ทุกเครื่องอีกรอบ
 
-## ขั้นตอน (แนวทาง B – ใบรับรองสาธารณะ)
+### 4. ติดตั้งลง iPad (ทำทีละเครื่อง ครั้งเดียว)
+1. ส่งไฟล์ `C:\Airbus\ssl-work\ipad\rtaf602-efb-root-ca.cer` ไปที่ iPad ด้วย AirDrop หรืออีเมล แล้วแตะเปิดไฟล์
+2. ไปที่ **Settings → Profile Downloaded → Install**
+3. ไปที่ **Settings → General → About → Certificate Trust Settings**
+   แล้วเปิดสวิตช์ **RTAF602 EFB Root CA** ⚠️ ถ้าลืมขั้นนี้ จะ sync ไม่ได้
+4. ในแอป **FS+ Manager** ตั้ง ADDRESS เป็นชื่อจากข้อ 2 แล้วลอง sync ด้วย Test user
 
-แนวทาง A ให้ทำตาม [docs/option-a-vpn.md](docs/option-a-vpn.md)
+ถ้าหน่วยมี MDM ใช้ push ไฟล์ `.cer` นี้แทนการทำทีละเครื่องได้
 
-### 1) สร้าง key และ CSR
+---
+
+## ต่ออายุ (ประมาณทุก 2 ปี)
+
+สคริปต์บอกวันหมดอายุตอนรันเสร็จ ให้ลงปฏิทินเตือนล่วงหน้า 1 เดือน เมื่อถึงเวลาให้รันคำสั่งเดิม:
 ```powershell
-.\scripts\01-New-Csr.ps1
+.\Setup-LanSsl.ps1
 ```
-- สคริปต์ถามรหัสผ่าน keystore (อย่างน้อย 8 ตัว ห้ามมีอักขระต้องห้าม) ให้จดเก็บไว้ในที่ปลอดภัย
-- จะได้ `C:\Airbus\ssl-work\<yyyyMMdd>\fsa-keystore-<yyyyMMdd>.jks` และ `gateway.csr`
-  (คัดลอก CSR ลง clipboard ให้แล้ว)
+แล้วใส่รหัสผ่านเดิม **ไม่ต้องทำอะไรกับ iPad**
+ควรรันในช่วงที่ไม่มีใคร sync เพราะ Wildfly จะ restart
 
-### 2) ซื้อ DV SSL และยืนยันโดเมน
-1. ซื้อ DV SSL แบบ single domain (เช่น Sectigo PositiveSSL) จาก reseller
-2. ตอน activate ให้วาง CSR และถ้าระบบถามประเภทเซิร์ฟเวอร์ ให้เลือก **Tomcat** หรือ **Other**
-3. ยืนยันโดเมนด้วย **DNS (CNAME/TXT)** ซึ่งเหมาะที่สุด เพราะ Gateway ไม่ต้องเปิดพอร์ต 80
-4. ดาวน์โหลดไฟล์ที่ได้ เช่น `efb-gateway_rtaf602_com.crt` และ `efb-gateway_rtaf602_com.ca-bundle`
+---
 
-### 3) นำใบรับรองเข้า keystore
-```powershell
-.\scripts\02-Import-Certificate.ps1 -CertFile C:\Downloads\efb-gateway_rtaf602_com.crt `
-                                     -ChainFile C:\Downloads\efb-gateway_rtaf602_com.ca-bundle
-```
-ถ้าได้ไฟล์ `.p7b` ที่มี chain ครบมาแล้ว ใช้ `-CertFile xxx.p7b` อย่างเดียวได้เลย
-สคริปต์ตรวจให้ว่า alias `mach9` เป็น PrivateKeyEntry, chain ≥ 2 ใบ และ SAN ตรงกับโดเมน
+## ถ้ามีปัญหา
 
-### 4) ติดตั้งลง Wildfly (เปิด PowerShell แบบ Administrator)
-```powershell
-.\scripts\03-Install-Keystore.ps1
-```
-- สำรองไฟล์เป็น `standalone.xml.bak-<timestamp>`
-- คัดลอก keystore ไปที่ `[Wildfly]\standalone\configuration\`
-- แก้ `gatewayKeyStore` (path และรหัสผ่าน) และ `gatewayKeyManager` (รหัสผ่าน)
-- restart service Wildfly แล้วรอจนพอร์ต HTTPS เปิด
-
-ถ้าต้องการ restart เองในช่วงที่ไม่มีการ sync ใช้ `-NoRestart`
-
-### 5) ทดสอบ
-```powershell
-.\scripts\04-Test-Gateway.ps1                     # จากเครื่องอื่นที่ resolve โดเมนได้
-.\scripts\04-Test-Gateway.ps1 -Server 127.0.0.1   # บนเครื่อง Gateway เอง
-```
-ต้องขึ้น `[OK] Certificate is valid and trusted.` จากนั้นทดสอบด้วย iPad จริง:
-ตั้ง server address ใน FS+ Manager เป็น `efb-gateway.rtaf602.com` (ไม่ใช่ IP) แล้ว sync ด้วย Test user ก่อน
-
-### ย้อนกลับ (ถ้า Wildfly ไม่ขึ้นหรือ iPad sync ไม่ได้)
-```powershell
-.\scripts\99-Rollback.ps1          # ใช้ backup ล่าสุด
-```
-keystore เดิมยังอยู่ที่เดิม เพราะไฟล์ใหม่ใช้ชื่อต่างกัน การย้อนกลับจึงแค่คืน `standalone.xml`
-
-## การต่ออายุ
-
-ใบรับรองหมดอายุ = **iPad ทุกเครื่อง sync ไม่ได้ทันที**
-
-- ทำขั้นตอนที่ 1–5 ซ้ำทั้งหมดก่อนหมดอายุ สคริปต์สร้าง key ใหม่ในโฟลเดอร์ใหม่ทุกรอบ
-- ปัจจุบันกฎ CA/Browser Forum ลดอายุสูงสุดของใบรับรองสาธารณะลงเรื่อยๆ
-  แม้ซื้อแพ็กเกจหลายปี ก็ต้อง reissue และติดตั้งใหม่หลายครั้งต่อปี
-- ตั้งการแจ้งเตือนอัตโนมัติด้วย Task Scheduler ให้รัน `04-Test-Gateway.ps1` ทุกวัน
-  (exit code 1 = เหลือน้อยกว่า `WarnDays` วัน, 2 = ใบรับรองใช้ไม่ได้):
-  ```powershell
-  $a = New-ScheduledTaskAction -Execute 'powershell.exe' `
-       -Argument '-NoProfile -ExecutionPolicy Bypass -File C:\Airbus\fsa-gateway\scripts\04-Test-Gateway.ps1 -Server 127.0.0.1'
-  Register-ScheduledTask -TaskName 'FSA Gateway SSL check' -Action $a `
-       -Trigger (New-ScheduledTaskTrigger -Daily -At 8am) -User SYSTEM
-  ```
-  แล้วตั้งระบบ monitoring ที่มีอยู่ให้แจ้งเตือนเมื่อ task จบด้วย exit code ไม่ใช่ 0
-
-## แก้ปัญหาที่พบบ่อย
-
-| อาการ | สาเหตุ / วิธีแก้ |
+| อาการ | วิธีแก้ |
 |---|---|
-| `keystore password was incorrect` | รหัสผ่านไม่ตรงกับที่ตั้งในขั้นที่ 1 |
-| `Public keys in reply and keystore don't match` | ใบรับรองออกจาก CSR ตัวอื่น ให้ใช้ `-Stamp <yyyyMMdd>` ชี้โฟลเดอร์ที่ถูก หรือ reissue ด้วย CSR ล่าสุด |
-| `certificate chain length is 1` | ไม่ได้ใส่ `-ChainFile` (.ca-bundle) |
-| `RemoteCertificateNameMismatch` | iPad/ผู้ทดสอบเข้าด้วย IP หรือชื่ออื่นที่ไม่ใช่ `efb-gateway.rtaf602.com` |
-| `RemoteCertificateChainErrors` | ยังเป็น self-signed หรือ Wildfly ยังไม่ได้ restart |
-| Wildfly ไม่ start | ดู `[Wildfly]\standalone\log\server.log` แล้วรัน `99-Rollback.ps1` |
+| สคริปต์ขึ้น `[FAIL]` | รันใหม่ด้วย `.\Setup-LanSsl.ps1 -ShowDetails` เพื่อดูรายละเอียด |
+| `keystore password was incorrect` | ใส่รหัสผ่านไม่ตรงกับครั้งแรก |
+| `does not resolve` | ยังไม่ได้ทำข้อ 2 หรือพิมพ์ชื่อใน `config.ps1` ผิด |
+| Wildfly ไม่ start หลังติดตั้ง | `.\scripts\99-Rollback.ps1` เพื่อคืนค่าเดิม แล้วดู `[Wildfly]\standalone\log\server.log` |
+| iPad sync ไม่ได้ | ตรวจว่า iPad อยู่ Wi-Fi วงเดียวกัน, เปิดสวิตช์ Certificate Trust Settings แล้ว และ ADDRESS เป็นชื่อ ไม่ใช่ IP |
+| ทดสอบจาก iPad | เปิด Safari ไปที่ `https://<ชื่อ>:<port>/fsa-gateway` ต้องไม่มีคำเตือน |
 
-## โครงสร้าง repo
+---
+
+## รายละเอียดทางเทคนิค
+
+สคริปต์ทำตามข้อกำหนดใน Installation Guide V5.6.1 RevA (10.3, 11.4) และ Release Note:
+keystore ใช้ alias `mach9` และ storetype PKCS12, แก้ `gatewayKeyStore` / `gatewayKeyManager` ใน `standalone.xml`
+(สำรองไฟล์ไว้ก่อนทุกครั้ง) และใบรับรองผ่านข้อกำหนดของ iOS (≤ 825 วัน, SAN, EKU serverAuth, RSA 2048, SHA-256)
 
 ```
-config.example.ps1           ค่าตั้งต้น (คัดลอกเป็น config.ps1)
-scripts/Common.ps1           ฟังก์ชันที่ใช้ร่วมกัน
-scripts/01-New-Csr.ps1       สร้าง key (alias mach9, PKCS12) + CSR
-scripts/02-Import-Certificate.ps1  นำใบรับรองจาก CA เข้า keystore และตรวจสอบ
-scripts/03-Install-Keystore.ps1    ติดตั้งลง Wildfly + แก้ standalone.xml + restart
-scripts/04-Test-Gateway.ps1  ทดสอบ TLS แบบเดียวกับฝั่ง client + เช็กวันหมดอายุและข้อกำหนด iOS
-                             (-CaFile สำหรับ Private CA)
-scripts/05-Set-Firewall.ps1  เปิดพอร์ต HTTPS เฉพาะ VPN/LAN และหา rule ที่เปิดพอร์ตให้ทุก IP
-scripts/99-Rollback.ps1      คืน standalone.xml จาก backup
-scripts/ca/10-New-RootCA.ps1      สร้าง Root CA ของหน่วย (ครั้งเดียว บนเครื่องแอดมิน)
-scripts/ca/11-Sign-GatewayCsr.ps1 เซ็นใบรับรอง Gateway (≤ 825 วัน ตามข้อกำหนด iOS)
-docs/option-a-vpn.md         คู่มือแนวทาง A: ย้ายเครื่อง, DNS, CA, MDM, VPN, ทดสอบ
+Setup-LanSsl.ps1                  คำสั่งเดียว: ทำครั้งแรก / ต่ออายุ
+config.example.ps1                ค่าตั้งต้น (คัดลอกเป็น config.ps1)
+scripts/99-Rollback.ps1           คืน standalone.xml จาก backup
+scripts/04-Test-Gateway.ps1       ทดสอบ HTTPS และวันหมดอายุ
+scripts/01-03, scripts/ca/*.ps1   ขั้นตอนย่อยที่ Setup-LanSsl.ps1 เรียกใช้
 ```
-
-อ้างอิง: Flysmart+ for iPad Gateway V5.6.1 Installation Guide RevA (10.3, 11.4) และ Release Note RevA

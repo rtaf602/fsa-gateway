@@ -15,7 +15,8 @@
 param(
     [Parameter(Mandatory = $true)][string]$CertFile,
     [string]$ChainFile,
-    [string]$Stamp
+    [string]$Stamp,
+    [switch]$NoPrompt
 )
 
 . (Join-Path $PSScriptRoot 'Common.ps1')
@@ -43,9 +44,14 @@ if ($CertFile -match '\.p7[bc]$' -and -not $ChainFile) {
 $pw = Read-KeystorePassword
 
 Write-Step 'Importing certificate reply into alias mach9'
-Write-Host '    (if keytool asks "Trust this certificate?", check the issuer and answer yes)' -ForegroundColor DarkGray
-Invoke-Keytool -Interactive -Arguments @('-importcert', '-alias', $script:Alias, '-trustcacerts', '-file', $reply,
-    '-keystore', $ks, '-storetype', 'PKCS12', '-storepass', $pw) | Out-Null
+$importArgs = @('-importcert', '-alias', $script:Alias, '-trustcacerts', '-file', $reply,
+    '-keystore', $ks, '-storetype', 'PKCS12', '-storepass', $pw)
+if ($NoPrompt) {
+    Invoke-Keytool -Arguments ($importArgs + '-noprompt') | Out-Null
+} else {
+    Write-Host '    (if keytool asks "Trust this certificate?", check the issuer and answer yes)' -ForegroundColor DarkGray
+    Invoke-Keytool -Interactive -Arguments $importArgs | Out-Null
+}
 
 Write-Step 'Verifying keystore'
 $list = (Invoke-Keytool -Quiet -Arguments @('-list', '-v', '-alias', $script:Alias, '-keystore', $ks,

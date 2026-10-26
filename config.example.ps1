@@ -2,7 +2,10 @@
 # config.ps1 is ignored by git. NEVER put passwords in this file.
 
 $Config = @{
-    # Domain name of the Gateway (must be covered by the certificate, no IP)
+    # Name the iPads use to reach the Gateway (must not be an IP address).
+    # - If the office router/DNS can map a name to the Gateway IP:  'efb-gateway.rtaf602.com'
+    # - If not, use sslip.io with the Gateway IP written with dashes, e.g. for 192.168.1.10:
+    #       'efb-gateway-192-168-1-10.sslip.io'
     Domain             = 'efb-gateway.rtaf602.com'
 
     # Wildfly installation folder used by the Flysmart+ Gateway
@@ -14,26 +17,18 @@ $Config = @{
     # HTTPS port configured in standalone.xml (default 8443)
     HttpsPort          = 8443
 
-    # Working folder for keys, CSR and certificates.
-    # Keep it OUTSIDE this git repository: it contains the private key.
+    # Working folder for keys and certificates (outside this git repository).
     WorkRoot           = 'C:\Airbus\ssl-work'
 
-    # RSA key size (2048 minimum, 3072 also fine)
-    KeySize            = 2048
-
-    # Warn when the certificate expires in less than N days (04-Test-Gateway.ps1)
-    WarnDays           = 30
-
-    # ---- Private CA (option A: VPN + internal CA) -------------------------
-    # Folder holding the root CA keystore. Put it on a removable/encrypted drive,
-    # NOT on the Gateway server and NOT in this repository.
-    CaRoot             = 'E:\rtaf602-ca'
+    # Unit root CA (created once, reused at every renewal so iPads keep trusting it)
+    CaRoot             = 'C:\Airbus\ssl-work\ca'
     CaName             = 'RTAF602 EFB Root CA'
     CaValidityYears    = 10
+
     # Gateway certificate lifetime. iOS rejects TLS server certificates > 825 days.
     CertValidityDays   = 800
 
-    # ---- Firewall (05-Set-Firewall.ps1) -----------------------------------
-    # Networks allowed to reach the Gateway HTTPS port: VPN client pool + office LAN.
-    AllowedSubnets     = @('10.8.0.0/24', '192.168.1.0/24')
+    # RSA key size and expiry warning used by the test script
+    KeySize            = 2048
+    WarnDays           = 30
 }
