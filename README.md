@@ -93,6 +93,18 @@ New-NetFirewallRule -DisplayName "FSA Gateway HTTPS 8443" -Direction Inbound -Pr
 
 ---
 
+## ป้องกัน fsa-gateway-user หยุดทำงาน (ทำครั้งเดียว)
+
+ถ้าเครื่องถูกปิดขณะที่ Wildfly ยังเปิดตัวไม่เสร็จ PostgreSQL อาจปิดก่อน ทำให้ `fsa-gateway-user` ถูกยกเลิก
+และไม่กลับมาทำงานเอง เพราะ `auto-deploy-zipped="false"` (เคยเกิดเมื่อ 18 ก.ย. 2026) ให้ตั้ง Wildfly ให้ขึ้นกับ PostgreSQL:
+```powershell
+sc.exe qc Wildfly                                            # ดู DEPENDENCIES เดิม (Tcpip, Afd)
+sc.exe config Wildfly depend= Tcpip/Afd/postgresql-x64-16    # เก็บของเดิม + เพิ่ม PostgreSQL
+```
+หลังเปิดเครื่อง ควรรอประมาณ 5 นาทีก่อนปิดหรือรีสตาร์ท
+
+---
+
 ## ต่ออายุ (ทุก ≤ 200 วัน และทุก ≤ 100 วันตั้งแต่ มี.ค. 2027)
 
 กฎนี้ใช้กับทุก CA ซื้อแพ็กเกจหลายปีก็ต้อง reissue ตามรอบ
