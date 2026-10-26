@@ -78,7 +78,15 @@ Account → **SSL Certificates** → **Activate**
 - `03` จะสำรอง `standalone.xml` แก้ค่าที่จำเป็น แล้ว restart Wildfly
 - `04` ต้องขึ้น `[OK] Certificate is valid and trusted.`
 
-### 8. ตั้ง iPad
+### 8. เปิด Firewall ให้ iPad เข้าถึงได้
+ถ้าเปิดลิงก์ได้จากเครื่อง Gateway แต่เปิดจาก iPad ไม่ได้ แปลว่า Windows Firewall บล็อกอยู่
+ให้รันใน PowerShell (Admin) บนเครื่อง Gateway:
+```powershell
+New-NetFirewallRule -DisplayName "FSA Gateway HTTPS 8443" -Direction Inbound -Protocol TCP -LocalPort 8443 -Action Allow -Profile Any -RemoteAddress LocalSubnet
+```
+คำสั่งนี้เปิดพอร์ต 8443 ให้เฉพาะเครื่องในวง Wi-Fi/LAN เดียวกัน
+
+### 9. ตั้ง iPad
 ในแอป **FS+ Manager** ตั้ง ADDRESS เป็น `rtaf602fsagateway.com` และพอร์ต HTTPS ของ Gateway
 แล้วลอง sync ด้วย Test user ก่อน
 
@@ -106,6 +114,7 @@ Account → **SSL Certificates** → **Activate**
 | `certificate chain length is 1` | ลืมใส่ `-ChainFile` (.ca-bundle) |
 | `RemoteCertificateNameMismatch` | iPad หรือผู้ทดสอบเข้าด้วย IP แทนชื่อ `rtaf602fsagateway.com` |
 | `nslookup` ไม่ได้ IP | ตรวจ A record ใน Namecheap หรือ router บล็อก DNS ที่ชี้ไป IP ภายใน (DNS rebinding protection) |
+| เปิดได้จากเครื่อง Gateway แต่ iPad เปิดไม่ได้ | ทำขั้นที่ 8 (Firewall) และตรวจว่า iPad ต่อ Wi-Fi วงเดียวกัน |
 | Wildfly ไม่ start | `.\scripts\99-Rollback.ps1` แล้วดู `[Wildfly]\standalone\log\server.log` |
 
 ---
