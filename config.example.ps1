@@ -3,10 +3,8 @@
 
 $Config = @{
     # Name the iPads use to reach the Gateway (must not be an IP address).
-    # - If the office router/DNS can map a name to the Gateway IP:  'efb-gateway.rtaf602.com'
-    # - If not, use sslip.io with the Gateway IP written with dashes, e.g. for 192.168.1.10:
-    #       'efb-gateway.192-168-1-10.sslip.io'
-    Domain             = 'efb-gateway.rtaf602.com'
+    # Registered at Namecheap; A record "@" points to the Gateway LAN IP.
+    Domain             = 'rtaf602fsagateway.com'
 
     # Wildfly installation folder used by the Flysmart+ Gateway
     WildflyPath        = 'C:\Airbus\Wildfly'

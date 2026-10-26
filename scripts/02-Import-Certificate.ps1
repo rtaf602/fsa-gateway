@@ -9,7 +9,7 @@
 .PARAMETER Stamp
   Work folder name (yyyyMMdd). Defaults to the most recent one.
 .EXAMPLE
-  .\scripts\02-Import-Certificate.ps1 -CertFile .\efb-gateway_rtaf602_com.crt -ChainFile .\efb-gateway_rtaf602_com.ca-bundle
+  .\scripts\02-Import-Certificate.ps1 -CertFile .\rtaf602fsagateway_com.crt -ChainFile .\rtaf602fsagateway_com.ca-bundle
 #>
 [CmdletBinding()]
 param(
