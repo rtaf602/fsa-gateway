@@ -29,6 +29,9 @@ $Config = @{
     CertValidityDays   = 800
 
     # RSA key size and expiry warning used by the test script
+    # Two-letter country code put in the certificate request (required by Namecheap)
+    Country            = 'TH'
+
     KeySize            = 2048
     WarnDays           = 30
 }

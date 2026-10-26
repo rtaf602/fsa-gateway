@@ -14,6 +14,9 @@ param()
 . (Join-Path $PSScriptRoot 'Common.ps1')
 $cfg = Get-GatewayConfig
 $domain = $cfg.Domain
+# Country code is required by most commercial CAs (e.g. Namecheap)
+$country = if ($cfg.ContainsKey('Country') -and $cfg.Country) { $cfg.Country } else { 'TH' }
+$dname = "CN=$domain, C=$country"
 
 $stamp = Get-Date -Format 'yyyyMMdd'
 $dir = Join-Path $cfg.WorkRoot $stamp
@@ -32,7 +35,7 @@ $pw = Read-KeystorePassword -Confirm
 
 Write-Step 'Generating RSA key pair (alias mach9, storetype PKCS12)'
 Invoke-Keytool -Arguments @('-genkeypair', '-alias', $script:Alias, '-keyalg', 'RSA', '-keysize', "$($cfg.KeySize)",
-    '-sigalg', 'SHA256withRSA', '-validity', '30', '-dname', "CN=$domain", '-ext', "SAN=dns:$domain",
+    '-sigalg', 'SHA256withRSA', '-validity', '30', '-dname', $dname, '-ext', "SAN=dns:$domain",
     '-keystore', $ks, '-storetype', 'PKCS12', '-storepass', $pw, '-keypass', $pw) | Out-Null
 
 Write-Step 'Creating CSR'
