@@ -1,7 +1,7 @@
 # fsa-gateway – SSL certificate สำหรับ Flysmart+ for iPad Gateway
 
 ติดตั้งใบรับรอง SSL ให้ Flysmart+ Gateway V5.6.1 ที่ **`rtaf602fsagateway.com`**
-ใช้ใบรับรอง **Sectigo PositiveSSL** ซื้อจาก Namecheap ซึ่งเป็น CA ที่น่าเชื่อถือตามที่คู่มือ NAVBLUE กำหนด
+ใช้ใบรับรอง **Standard SSL** (ชื่อเดิม PositiveSSL ออกโดย **SSL.com**) ซื้อจาก Namecheap ซึ่งเป็น CA ที่น่าเชื่อถือตามที่คู่มือ NAVBLUE กำหนด
 (Installation Guide 10.3, 11.4) iPad เชื่อถือใบรับรองนี้ได้ทันที **ไม่ต้องติดตั้งอะไรลง iPad**
 
 เงื่อนไขการใช้งาน: iPad sync ได้เมื่อ **เครื่อง Gateway เปิดอยู่** และ **iPad ต่อ Wi-Fi วงเดียวกับเครื่อง Gateway**
@@ -9,7 +9,7 @@
 > ⚠️ repo นี้เป็น public ห้าม commit ไฟล์ `.jks` `.crt` `config.ps1` หรือรหัสผ่าน
 > สคริปต์เก็บไฟล์ทั้งหมดไว้ที่ `C:\Airbus\ssl-work` ซึ่งอยู่นอก repo
 
-ค่าใช้จ่ายประมาณ 16–20 USD ต่อปี (โดเมนประมาณ 10–15 USD + PositiveSSL ประมาณ 6 USD)
+ค่าใช้จ่ายประมาณ 16–20 USD ต่อปี (ปีแรก: โดเมน 6.48 USD + ICANN 0.20 USD + SSL 5.99 USD; ปีถัดไปโดเมน 14.98 USD)
 
 ---
 
@@ -23,8 +23,8 @@
 ### 2. ซื้อบน Namecheap
 1. ค้นหา `rtaf602fsagateway.com` แล้วกด **Add to cart**
    เปิด Domain Privacy (ฟรี) และ Auto-Renew **ไม่ต้องซื้อของเสริม** เช่น PremiumDNS, Email หรือ Hosting
-2. เมนู **Security → SSL Certificates → Domain Validation → PositiveSSL** (ใบธรรมดา ไม่ใช่ Wildcard หรือ Multi-Domain)
-   แนะนำซื้อ 2–3 ปี จะได้ราคาต่อปีถูกกว่า และ reissue ได้ฟรีภายใน subscription
+2. เพิ่ม **Standard SSL** (ex-PositiveSSL; ไม่ใช่ Wildcard หรือ Multi-Domain) 1 ปีพร้อมโดเมน
+   ลบรายการเสริมอื่นในตะกร้าทิ้ง เช่น Stellar Web Hosting
 3. Checkout
 
 ### 3. ตั้ง DNS
@@ -73,6 +73,8 @@ Account → **SSL Certificates** → **Activate**
 .\scripts\03-Install-Keystore.ps1
 .\scripts\04-Test-Gateway.ps1
 ```
+- ถ้า `02` ถามว่า "...is not trusted. Install reply anyway?" ให้ดูว่า issuer เป็น **SSL.com** แล้วตอบ `yes`
+  (Java 8 รุ่นเก่าอาจยังไม่มี root ของ SSL.com แต่ iPad และ Windows เชื่อถืออยู่แล้ว)
 - `03` จะสำรอง `standalone.xml` แก้ค่าที่จำเป็น แล้ว restart Wildfly
 - `04` ต้องขึ้น `[OK] Certificate is valid and trusted.`
 
