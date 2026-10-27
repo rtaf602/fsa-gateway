@@ -163,6 +163,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 ## โครงสร้าง repo
 
 ```
+docs/incident-log.md              บันทึกปัญหาที่เคยเกิด แยกตามเครื่อง (main, ohomee)
 config.example.ps1                ค่าตั้งต้น (คัดลอกเป็น config.ps1)
 scripts/01-New-Csr.ps1            สร้าง key (alias mach9, PKCS12) + CSR
 scripts/02-Import-Certificate.ps1 นำใบรับรองจาก CA เข้า keystore และตรวจ chain/ชื่อ
