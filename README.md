@@ -105,6 +105,32 @@ sc.exe config Wildfly depend= Tcpip/Afd/postgresql-x64-16    # เก็บข�
 
 ---
 
+## ตรวจและซ่อม Gateway อัตโนมัติ (แนะนำให้ติดตั้งทุกเครื่อง)
+
+ป้องกันปัญหาที่เคยเกิดขึ้น: `fsa-gateway` หรือ `fsa-gateway-user` ไม่ถูกเปิด (ไม่มีไฟล์ `.deployed`),
+Wildfly เปิดก่อน PostgreSQL และ Java ถูกถอนหรืออัปเดตจน JAVA_HOME ชี้ไปที่ที่ไม่มีอยู่
+
+ติดตั้งครั้งเดียวต่อเครื่อง (PowerShell แบบ Administrator):
+```powershell
+cd C:\Airbus\fsa-gateway\fsa-gateway-main
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\Install-GatewayAutoRepair.ps1          # ถ้า Wildfly อยู่ที่อื่น: -WildflyPath D:\...\Wildfly
+```
+สคริปต์จะ:
+1. ตั้งให้ Wildfly รอ PostgreSQL ก่อนเปิด (เก็บ dependency เดิม เช่น Tcpip/Afd ไว้)
+2. ตั้งให้ Wildfly restart เองถ้าล่ม
+3. ปิด Java auto-update
+4. สร้าง Scheduled Task "FSA Gateway Auto Repair" ให้รัน `Repair-Gateway.ps1` 5 นาทีหลังเปิดเครื่อง และทุกวันเวลา 07:00
+   ถ้าไฟล์ `.deployed` หายไป สคริปต์จะสร้าง `.dodeploy` ให้เอง และบันทึกผลไว้ที่ `[Wildfly]\standalone\log\gateway-repair.log`
+
+ตรวจเองได้ทุกเมื่อ: `.\scripts\Repair-Gateway.ps1 -CheckOnly`
+ยกเลิก Scheduled Task: `.\scripts\Install-GatewayAutoRepair.ps1 -Uninstall`
+
+สคริปต์**ซ่อม Java ไม่ได้** ถ้า log ขึ้น `JAVA_HOME ... bin\java.exe is missing` ให้ติดตั้ง JDK ตัวเดิม (เช่น jdk1.8.0_202 64-bit)
+กลับไปที่ path เดิม แล้วรีสตาร์ทเครื่อง **ห้ามถอนการติดตั้ง Java บนเครื่อง Gateway**
+
+---
+
 ## ต่ออายุ (ทุก ≤ 200 วัน และทุก ≤ 100 วันตั้งแต่ มี.ค. 2027)
 
 กฎนี้ใช้กับทุก CA ซื้อแพ็กเกจหลายปีก็ต้อง reissue ตามรอบ
@@ -143,6 +169,8 @@ scripts/02-Import-Certificate.ps1 นำใบรับรองจาก CA เ
 scripts/03-Install-Keystore.ps1   ติดตั้งลง Wildfly + แก้ standalone.xml + restart
 scripts/04-Test-Gateway.ps1       ทดสอบ HTTPS แบบเดียวกับ iPad + วันหมดอายุ
 scripts/99-Rollback.ps1           คืน standalone.xml จาก backup
+scripts/Repair-Gateway.ps1        ตรวจ/ซ่อม Java, PostgreSQL, Wildfly และไฟล์ .deployed
+scripts/Install-GatewayAutoRepair.ps1  ติดตั้งการป้องกัน + Scheduled Task ซ่อมอัตโนมัติ
 Setup-LanSsl.ps1, scripts/ca/     ทางเลือกสำรอง: ใช้ CA ของหน่วยเอง (ฟรี อายุประมาณ 2 ปี
                                   แต่ต้องติดตั้งไฟล์ลง iPad ทุกเครื่อง และไม่ตรงตามคู่มือ NAVBLUE)
 ```
