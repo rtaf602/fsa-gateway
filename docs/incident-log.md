@@ -58,12 +58,36 @@
 - จากนั้นทุกครั้งที่เปิดเครื่อง log ขึ้น `WFLYDS0004 ... To trigger deployment create a file called fsa-gateway-user.war.dodeploy`
   แต่ Wildfly ไม่ deploy เอง เพราะตั้ง `auto-deploy-zipped="false"`
 
-**วิธีแก้**
-- สร้าง `fsa-gateway-user.war.dodeploy` แล้วรอจนได้ `.deployed` ผล: iPad sync ได้
+**วิธีหาสาเหตุ (คำสั่งที่ใช้)**
+```powershell
+Get-ChildItem C:\Airbus\Wildfly\standalone\deployments | Select-Object Name           # ไม่มี fsa-gateway-user.war.deployed
+Select-String -Path C:\Airbus\Wildfly\standalone\log\server.log* -Pattern 'fsa-gateway-user' | Select-Object -Last 20
+Select-String -Path C:\Airbus\Wildfly\standalone\log\server.log.2026-09-18 -Pattern 'Caused by' | Select-Object -First 8
+Select-String -Path C:\Airbus\Wildfly\standalone\configuration\standalone.xml -Pattern 'deployment-scanner'
+```
 
-**การป้องกัน**
-- `sc.exe config Wildfly depend= Tcpip/Afd/postgresql-x64-16` (ทำแล้ว 2026-10-26)
-- ควรติดตั้ง `Install-GatewayAutoRepair.ps1` เพิ่ม
+**วิธีแก้**
+```powershell
+New-Item C:\Airbus\Wildfly\standalone\deployments\fsa-gateway-user.war.dodeploy -ItemType File
+# รอ 1-5 นาที -> เกิด fsa-gateway-user.war.deployed
+```
+ผล: `/fsa-gateway-user` ไม่ขึ้น 404 แล้ว และ FS+ Manager ใช้ Update all ได้ทั้งแบบ IP และ `rtaf602fsagateway.com`
+
+**การป้องกัน (ทำแล้ว 2026-10-26)**
+```powershell
+sc.exe qc Wildfly                                            # เดิม DEPENDENCIES = Tcpip, Afd
+sc.exe config Wildfly depend= Tcpip/Afd/postgresql-x64-16    # [SC] ChangeServiceConfig SUCCESS
+```
+ตรวจแล้ว: DEPENDENCIES = Tcpip, Afd, postgresql-x64-16 และ `postgresql-x64-16` เป็น Running/Automatic
+ผล: ตอนเปิดเครื่อง Windows จะเปิด PostgreSQL ก่อน Wildfly และตอนปิดเครื่องจะปิด Wildfly ก่อน PostgreSQL
+
+- ควรติดตั้ง `Install-GatewayAutoRepair.ps1` เพิ่ม เพื่อซ่อมไฟล์ `.deployed` ให้อัตโนมัติ
+- หลังเปิดเครื่อง ควรรอประมาณ 5 นาทีก่อนปิดหรือรีสตาร์ท
+
+**หมายเหตุ**
+- Wildfly บนเครื่องนี้ปิดตัวช้า (3-5 นาที) ตอน restart ถ้าเกิน 5 นาที ให้บังคับปิด process `java.exe` / `wildfly-service.exe` ของ Wildfly
+  แล้ว `Start-Service Wildfly`
+- ระหว่างหาสาเหตุ ได้ลอง rollback ใบรับรองไปใช้ตัวเดิม และยืนยันแล้วว่าปัญหา**ไม่ได้มาจาก SSL**
 
 **เรื่องอื่นที่ทำในวันเดียวกัน (ไม่ใช่สาเหตุของอาการข้างบน)**
 - ติดตั้ง SSL `rtaf602fsagateway.com` ใช้ได้ถึง 2027-05-12
